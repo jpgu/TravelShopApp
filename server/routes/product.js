@@ -41,8 +41,32 @@ router.post('/', (req, res) => {
     if(err) return res.status(400).json({ success: false, err })
     return res.status(200).json({success: true})
   })
-
 })
+
+
+router.get('/products_by_id', (req, res) => {
+
+  let type = req.query.type
+  let productIds = req.query.id
+
+  if(type === "array"){
+    let ids = req.query.id.split(',')
+    productIds = ids.map(item => {
+      return item
+    })
+  }
+  
+  // productId 를 이용해서 DB 에서 productId  와 같은 상품의 정보를 가져온다.
+
+  Product.find({_id: { $in: productIds }})
+    .populate('writer')
+    .exec((err, product) => {
+      if(err) return res.status(400).send(err)
+      return res.status(200).json({success:true, product})
+    }) 
+})
+
+
 
 router.post('/products', (req, res) => {
 
@@ -50,21 +74,65 @@ router.post('/products', (req, res) => {
 
   let limit = req.body.limit ? parseInt(req.body.limit) : 100;
   let skip = req.body.skip ? parseInt(req.body.skip) : 0;
+  let term = req.body.searchTerm
 
-  const totalPost =  Product.countDocuments({})
+  let findArgs = {};
 
-  Product.find()
+  console.log(req.body.filters)
+
+  for(let key in req.body.filters) {
+    console.log('key', key)
+    if(req.body.filters[key].length > 0){
+        console.log('in key ', key)
+
+        if(key === 'price'){
+          findArgs[key] = {
+            $gte: req.body.filters[key][0],    // greater than equal.  for mongoDB
+            $lte: req.body.filters[key][1]     // less than equal.  for mongoDB 
+          }
+        }
+        else{
+          findArgs[key] = req.body.filters[key];
+        }
+
+    }
+  }
+
+  console.log('findArgs', findArgs)
+
+  if(term){
+    Product.find(findArgs)
+    .find({ $text: {$search: term}})
     .populate("writer")
     .skip(skip)
-    .limit(limit)
+    .limit(limit)    
     .exec((err, productInfo) => {
       if(err) return res.status(400).json({ success: false, err })
-      Product.count()        
+      Product.find(findArgs)
+        .find({ $text: {$search: term}})
+        .count()
         .exec((err, count) => {
           return res.status(200).json({success: true, productInfo, postSize:productInfo.length, count:count });
-        })
-      
-    })    
+        })      
+    }) 
+
+  }
+  else{
+    Product.find(findArgs)
+    .populate("writer")
+    .skip(skip)
+    .limit(limit)    
+    .exec((err, productInfo) => {
+      if(err) return res.status(400).json({ success: false, err })
+      Product.find(findArgs)
+        .count()
+        .exec((err, count) => {
+          return res.status(200).json({success: true, productInfo, postSize:productInfo.length, count:count });
+        })      
+    }) 
+  }
+
+     
 
 })
 

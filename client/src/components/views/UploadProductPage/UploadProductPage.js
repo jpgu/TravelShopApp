@@ -16,7 +16,6 @@ const Continents = [
     {key:7, value:'Antarctica'},
 ]
 
-
 function UploadProductPage(props) {
 
     const [Title, setTitle] = useState("")
