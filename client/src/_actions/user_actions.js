@@ -124,7 +124,7 @@ export function removeCartItem(productId){
 }
 
 export function onSuccessBuy(data) {
-    const request = axios.get(`/api/users/successBuy`,data)
+    const request = axios.post(`${USER_SERVER}/successBuy`, data)
         .then(response => response.data);
             
     return {        
